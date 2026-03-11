@@ -16,12 +16,6 @@ export const CFG = {
     ATMOS_SCALE_HEIGHT: 550, // Altitude where air density drops by ~63%
     SEA_LEVEL_DENSITY: 1.0,
     REENTRY_VEL: 180, // Velocity threshold for thermal effects
-    TRUCK: {
-        MAX_SPEED: 18.0,
-        ACCEL: 8.5,
-        TURN_SPEED: 1.2,
-        BRAKE: 25.0
-    }
 };
 
 export function noise(x, z) {

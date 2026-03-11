@@ -18,8 +18,11 @@ let targetWorld = null, missileCount = 6, totalFired = 0;
 const missiles = [], mapExplosions = [];
 const keys = {};
 
+let mc, mapCtx, mapBg;
+
 function doFlash(v) {
     const f = document.getElementById('flash');
+    if (!f) return;
     f.style.transition = 'opacity 0.04s'; f.style.opacity = v;
     setTimeout(() => { f.style.transition = 'opacity 0.4s'; f.style.opacity = 0; }, 60);
 }
@@ -34,7 +37,6 @@ function explode(x, y, z, scale = 1.0) {
     doFlash(Math.min(0.85, 0.3 * S));
     mapExplosions.push({ wx: x, wz: z, life: 2.5 });
     
-    // Set sky flash intensity based on explosion altitude and scale
     if (skyMat) skyMat.uniforms.flashExp.value = Math.max(skyMat.uniforms.flashExp.value, 0.5 * S);
 }
 
@@ -42,15 +44,14 @@ function upTime(dt) {
     timeOfDay = (timeOfDay + dt / CFG.DAY_DUR) % 1.0;
     const angle = (timeOfDay - 0.25) * Math.PI * 2;
     const _sunDir = new THREE.Vector3(Math.cos(angle) * 0.55, Math.sin(angle), 0.38).normalize();
-    skyMat.uniforms.sunDir.value.copy(_sunDir);
-    skyMat.uniforms.time.value += dt;
-    skyMat.uniforms.flashExp.value *= 0.88; // Fade out explosion flash
-
-    // Calculate max altitude factor for sky
-    let maxAlt = 0;
-    for (const m of missiles) if (m.alive) maxAlt = Math.max(maxAlt, m.mesh.position.y);
-    skyMat.uniforms.altFactor.value = Math.min(1.0, maxAlt / 1200.0);
-
+    if (skyMat) {
+        skyMat.uniforms.sunDir.value.copy(_sunDir);
+        skyMat.uniforms.time.value += dt;
+        skyMat.uniforms.flashExp.value *= 0.88;
+        let maxAlt = 0;
+        for (const m of missiles) if (m.alive) maxAlt = Math.max(maxAlt, m.mesh.position.y);
+        skyMat.uniforms.altFactor.value = Math.min(1.0, maxAlt / 1200.0);
+    }
     terrainMat.uniforms.sunDir.value.copy(_sunDir);
     terrainMat.uniforms.camPos.value.copy(camera.position);
     sunLight.position.copy(_sunDir).multiplyScalar(1000);
@@ -60,15 +61,27 @@ function upTime(dt) {
     renderer.toneMappingExposure = 0.32 + dayness * 0.88;
     const h = Math.floor(timeOfDay * 24);
     const lbls = ['MIDNIGHT', 'PREDAWN', 'DAWN', 'MORNING', 'NOON', 'AFTERNOON', 'DUSK', 'NIGHT'];
-    document.getElementById('timeLbl').textContent = `${String(h).padStart(2, '0')}:00 · ${lbls[Math.min(Math.floor(timeOfDay * 8), 7)]}`;
+    const tLbl = document.getElementById('timeLbl');
+    if (tLbl) tLbl.textContent = `${String(h).padStart(2, '0')}:00 · ${lbls[Math.min(Math.floor(timeOfDay * 8), 7)]}`;
 }
-
-const mc = document.getElementById('map-canvas');
-const mapCtx = mc.getContext('2d');
-const mapBg = buildMapBg();
 
 function boot() {
     document.getElementById('boot').style.display = 'none';
+    
+    mc = document.getElementById('map-canvas');
+    if (mc) {
+        mapCtx = mc.getContext('2d');
+        mapBg = buildMapBg();
+        mc.addEventListener('click', e => {
+            const rect = mc.getBoundingClientRect();
+            const mx = (e.clientX - rect.left) * (CFG.MAP_SZ / rect.width);
+            const my = (e.clientY - rect.top) * (CFG.MAP_SZ / rect.height);
+            const wx = (mx / CFG.MAP_SZ - 0.5) * CFG.MAP_WORLD;
+            const wz = (my / CFG.MAP_SZ - 0.5) * CFG.MAP_WORLD;
+            targetWorld = new THREE.Vector3(wx, gnd(wx, wz) + 0.2, wz);
+        });
+    }
+
     renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     renderer.setPixelRatio(CFG.PIXEL_RATIO);
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -103,15 +116,6 @@ function boot() {
     document.addEventListener('keyup', e => keys[e.code] = false);
     document.addEventListener('wheel', e => { fov = Math.max(18, Math.min(90, fov + e.deltaY * 0.05)); camera.fov = fov; camera.updateProjectionMatrix(); });
 
-    mc.addEventListener('click', e => {
-        const rect = mc.getBoundingClientRect();
-        const mx = (e.clientX - rect.left) * (CFG.MAP_SZ / rect.width);
-        const my = (e.clientY - rect.top) * (CFG.MAP_SZ / rect.height);
-        const wx = (mx / CFG.MAP_SZ - 0.5) * CFG.MAP_WORLD;
-        const wz = (my / CFG.MAP_SZ - 0.5) * CFG.MAP_WORLD;
-        targetWorld = new THREE.Vector3(wx, gnd(wx, wz) + 0.2, wz);
-    });
-
     document.getElementById('btn-minus').onclick = () => { missileCount = Math.max(1, missileCount - 1); document.getElementById('count-display').textContent = String(missileCount).padStart(2, '0'); };
     document.getElementById('btn-plus').onclick = () => { missileCount = Math.min(80, missileCount + 1); document.getElementById('count-display').textContent = String(missileCount).padStart(2, '0'); };
     document.getElementById('btn-fire').onclick = () => fireSalvo(scene, camera, missiles, launcherObj, targetWorld, missileCount, () => totalFired++);
@@ -145,7 +149,7 @@ function loop() {
     updateMissiles(missiles, dt, scene, camera, dayness, explode);
     updateParticles(dt);
     updateLights(dt);
-    drawMap(mapCtx, mapBg, mapExplosions, missiles, launcherObj, camera, targetWorld, yaw);
+    if (mapCtx && mapBg) drawMap(mapCtx, mapBg, mapExplosions, missiles, launcherObj, camera, targetWorld, yaw);
     document.getElementById('flightLbl').textContent = missiles.length;
     document.getElementById('firedLbl').textContent = totalFired;
     camera.rotation.order = 'YXZ'; camera.rotation.y = yaw; camera.rotation.x = pitch;
