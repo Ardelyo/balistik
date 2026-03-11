@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BALLISTIC COMMAND</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;overflow:hidden;font-family:'Courier New',monospace;user-select:none}
+
+#boot{
+  position:fixed;inset:0;background:#080604;
+  display:flex;align-items:center;justify-content:center;
+  z-index:300;color:rgba(255,160,40,0.9);text-align:center;
+}
+#boot h1{font-size:18px;letter-spacing:12px;font-weight:normal;margin-bottom:10px}
+.bline{width:160px;height:1px;background:rgba(255,160,40,0.2);margin:10px auto}
+#boot p{font-size:9px;letter-spacing:3px;opacity:0.45;line-height:2.6}
+#boot button{
+  margin-top:20px;padding:9px 32px;border:1px solid rgba(255,160,40,0.4);
+  color:rgba(255,160,40,0.85);font-family:inherit;font-size:9px;
+  letter-spacing:5px;background:transparent;cursor:pointer;transition:.2s;
+}
+#boot button:hover{background:rgba(255,160,40,0.07);border-color:rgba(255,160,40,0.7)}
+
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:500;transition:opacity .3s}
+#vig{position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,0.65)100%);pointer-events:none;z-index:5}
+
+#xh{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:18px;height:18px;pointer-events:none;z-index:10;
+}
+#xh::before{content:'';position:absolute;left:50%;top:2px;bottom:2px;width:1px;background:rgba(255,160,40,0.6);transform:translateX(-50%)}
+#xh::after{content:'';position:absolute;top:50%;left:2px;right:2px;height:1px;background:rgba(255,160,40,0.6);transform:translateY(-50%)}
+
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10}
+#htl{position:absolute;top:16px;left:16px;font-size:8px;letter-spacing:3px;color:rgba(255,160,40,0.35);line-height:2}
+#htr{position:absolute;top:16px;right:16px;font-size:8px;letter-spacing:3px;color:rgba(255,160,40,0.35);text-align:right}
+#hbl{position:absolute;bottom:16px;left:16px;font-size:8px;letter-spacing:2px;color:rgba(255,160,40,0.22);line-height:2}
+
+/* MAP PANEL */
+#map-panel{
+  position:fixed;bottom:14px;right:14px;z-index:20;pointer-events:all;
+}
+#map-wrap{
+  position:relative;width:240px;height:240px;
+  border:1px solid rgba(255,160,40,0.25);
+  background:#0a0705;overflow:hidden;cursor:crosshair;
+}
+#map-canvas{display:block;width:240px;height:240px}
+#map-overlay{
+  position:absolute;inset:0;pointer-events:none;
+}
+#map-label{
+  position:absolute;top:5px;left:8px;
+  font-size:7px;letter-spacing:3px;color:rgba(255,160,40,0.4);
+}
+#map-scale{
+  position:absolute;bottom:5px;left:8px;
+  font-size:7px;letter-spacing:2px;color:rgba(255,160,40,0.3);
+}
+#map-controls{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 8px;background:#0a0705;
+  border:1px solid rgba(255,160,40,0.2);border-top:none;
+}
+#map-controls label{font-size:8px;letter-spacing:2px;color:rgba(255,160,40,0.45);white-space:nowrap}
+#count-display{
+  font-size:13px;letter-spacing:2px;color:rgba(255,160,40,0.85);
+  width:32px;text-align:center;
+}
+.map-btn{
+  background:transparent;border:1px solid rgba(255,160,40,0.3);
+  color:rgba(255,160,40,0.7);font-family:inherit;font-size:11px;
+  width:22px;height:22px;cursor:pointer;transition:.15s;padding:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.map-btn:hover{background:rgba(255,160,40,0.08);border-color:rgba(255,160,40,0.6)}
+#btn-fire{
+  margin-left:auto;padding:0 12px;height:22px;width:auto;
+  font-size:8px;letter-spacing:3px;background:transparent;
+  border:1px solid rgba(255,80,20,0.5);color:rgba(255,100,30,0.85);
+  font-family:inherit;cursor:pointer;transition:.15s;
+}
+#btn-fire:hover{background:rgba(255,80,20,0.12);border-color:rgba(255,80,20,0.8)}
+#btn-fire.ready{animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{border-color:rgba(255,80,20,0.5);color:rgba(255,100,30,0.85)}
+  50%{border-color:rgba(255,80,20,1);color:rgba(255,120,40,1)}}
+</style>
+</head>
+<body>
+
+<div id="boot">
+  <div>
+    <h1>BALLISTIC COMMAND</h1>
+    <div class="bline"></div>
+    <p>WASD · MOVE &nbsp;|&nbsp; MOUSE · LOOK<br>
+       MAP · SET TARGET &amp; FIRE<br>
+       T · ADVANCE TIME &nbsp;|&nbsp; SCROLL · ZOOM<br>
+       CLICK MAP → SET TARGET → FIRE</p>
+    <button onclick="boot()">INITIALIZE</button>
+  </div>
+</div>
+
+<div id="flash"></div>
+<div id="vig"></div>
+<div id="xh"></div>
+
+<div id="hud">
+  <div id="htl">SYSTEM READY<br><span id="timeLbl">—</span></div>
+  <div id="htr">IN FLIGHT&nbsp;<span id="flightLbl">0</span><br>TOTAL FIRED&nbsp;<span id="firedLbl">0</span></div>
+  <div id="hbl">WASD MOVE · SCROLL ZOOM · T TIME<br>CLICK MAP → SET TARGET → FIRE</div>
+</div>
+
+<div id="map-panel">
+  <div id="map-wrap">
+    <canvas id="map-canvas" width="240" height="240"></canvas>
+    <div id="map-label">TACTICAL MAP</div>
+    <div id="map-scale">0&nbsp;&nbsp;━━━━&nbsp;&nbsp;500m</div>
+  </div>
+  <div id="map-controls">
+    <label>MISSILES</label>
+    <button class="map-btn" id="btn-minus">−</button>
+    <span id="count-display">06</span>
+    <button class="map-btn" id="btn-plus">+</button>
+    <button id="btn-fire" class="ready">FIRE</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════════
+// CFG
+// ═══════════════════════════════════════════════════════════════
+const CFG = {
+  MAX_PART:    9000,
+  MAX_MISS:    80,
+  TERRAIN_SZ:  2500,
+  TERRAIN_SEG: 80,
+  DAY_DUR:     500,   // seconds per full cycle
+  GRAVITY:     13.5,
+  PIXEL_RATIO: Math.min(window.devicePixelRatio||1, 1.5),
+  SHADOW_SZ:   1024,
+  POOL_LIGHTS: 7,
+  MAP_SZ:      240,
+  MAP_WORLD:   2500,
+};
+
+// ═══════════════════════════════════════════════════════════════
+// TERRAIN NOISE
+// ═══════════════════════════════════════════════════════════════
+function noise(x, z) {
+  return  Math.sin(x*0.007) *Math.cos(z*0.0058)*13
+        + Math.sin(x*0.018+1.3)*Math.cos(z*0.016)*5.5
+        + Math.sin(x*0.044) *Math.cos(z*0.038)*2.0
+        + Math.sin(x*0.0008)*Math.cos(z*0.001)*30;
+}
+function gnd(x, z) {
+  const flat = 1 - Math.exp(-(x*x+z*z)/(88*88));
+  return noise(x, z) * flat;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GLOBALS
+// ═══════════════════════════════════════════════════════════════
+let renderer, scene, camera, clock;
+let skyMat, sunLight, ambLight, terrainMat;
+let partGeo;
+let launcherObj;           // { group, worldPos, tubePositions[] }
+let timeOfDay = 0.28;
+
+// Camera state
+let yaw = Math.PI + 0.3, pitch = 0.10;
+let isLocked = false;
+const keys = {};
+let fov = 65;
+let dayness = 0.7;         // cached 0-1
+
+// Mission state
+let targetWorld  = null;   // THREE.Vector3
+let missileCount = 6;
+let totalFired   = 0;
+let pendingQ     = [];     // {launchPos, target, remaining delay}
+let pendingTimer = 0;
+const missiles   = [];     // active missiles
+const expLights  = [];     // pooled lights
+
+// Map state
+let mapBg;                 // pre-rendered terrain canvas
+let mapCtx;                // map overlay context
+const mapExplosions = [];  // {x,z,life} for map flash markers
+
+// Shared materials (reused by all missiles)
+const sharedMats = {};
+function getMats() {
+  if (sharedMats.body) return sharedMats;
+  sharedMats.body = new THREE.MeshPhongMaterial({color:0xaaaaaa,specular:0x444444,shininess:80});
+  sharedMats.nose = new THREE.MeshPhongMaterial({color:0x1a1a1a,specular:0x111111,shininess:40});
+  sharedMats.eng  = new THREE.MeshPhongMaterial({color:0x383838,specular:0x222222,shininess:30});
+  sharedMats.fin  = new THREE.MeshPhongMaterial({color:0x777777,specular:0x333333,shininess:50,side:THREE.DoubleSide});
+  sharedMats.nozz = new THREE.MeshPhongMaterial({color:0x111111,emissive:0x441200,emissiveIntensity:1});
+  return sharedMats;
+}
+
+// Shared geometries (built once)
+let missileGeos = null;
+function getGeos() {
+  if (missileGeos) return missileGeos;
+  const nose = new THREE.ConeGeometry(0.13, 0.7, 8); nose.translate(0,0.35,0);
+  const band = new THREE.CylinderGeometry(0.135,0.135,0.18,8);
+  const body = new THREE.CylinderGeometry(0.133,0.145,1.5,10);
+  const eng  = new THREE.CylinderGeometry(0.15,0.165,0.55,8);
+  // Nozzle bell using lathe
+  const pts  = []; for(let i=0;i<=9;i++){const t=i/9;pts.push(new THREE.Vector2(0.055+t*t*0.11,-t*0.3));}
+  const nozz = new THREE.LatheGeometry(pts, 8);
+  // Swept delta fin
+  const sh = new THREE.Shape();
+  sh.moveTo(0.13,0); sh.lineTo(0.44,0); sh.lineTo(0.2,0.42); sh.lineTo(0.13,0.42); sh.closePath();
+  const fin = new THREE.ExtrudeGeometry(sh,{depth:0.03,bevelEnabled:false});
+  fin.rotateX(-Math.PI/2); fin.translate(0,-0.42,-0.015);
+  missileGeos = {nose,band,body,eng,nozz,fin};
+  return missileGeos;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FLARE TEXTURES
+// ═══════════════════════════════════════════════════════════════
+function makeTex(fn, size=256) {
+  const c = document.createElement('canvas'); c.width=c.height=size;
+  fn(c.getContext('2d'), size);
+  return new THREE.CanvasTexture(c);
+}
+const TEX_CORE = makeTex((ctx,s)=>{
+  const h=s/2, G=ctx.createRadialGradient(h,h,0,h,h,h);
+  G.addColorStop(0,   'rgba(255,255,255,1)');
+  G.addColorStop(0.05,'rgba(255,240,180,1)');
+  G.addColorStop(0.18,'rgba(255,140,20,0.9)');
+  G.addColorStop(0.45,'rgba(220,60,0,0.45)');
+  G.addColorStop(0.8, 'rgba(100,15,0,0.12)');
+  G.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.fillStyle=G; ctx.fillRect(0,0,s,s);
+});
+const TEX_HALO = makeTex((ctx,s)=>{
+  const h=s/2, G=ctx.createRadialGradient(h,h,0,h,h,h);
+  G.addColorStop(0,   'rgba(255,160,40,0.5)');
+  G.addColorStop(0.35,'rgba(255,90,5,0.25)');
+  G.addColorStop(0.7, 'rgba(180,30,0,0.08)');
+  G.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.fillStyle=G; ctx.fillRect(0,0,s,s);
+},128);
+const TEX_STREAK = makeTex((ctx,s)=>{
+  // Horizontal anamorphic streak
+  const SH=ctx.createLinearGradient(0,s/2,s,s/2);
+  SH.addColorStop(0,   'rgba(255,180,60,0)');
+  SH.addColorStop(0.38,'rgba(255,190,70,0.35)');
+  SH.addColorStop(0.5, 'rgba(255,240,160,0.85)');
+  SH.addColorStop(0.62,'rgba(255,190,70,0.35)');
+  SH.addColorStop(1,   'rgba(255,180,60,0)');
+  ctx.fillStyle=SH; ctx.fillRect(0, s*0.42, s, s*0.16);
+  // Secondary arc dots
+  [[80,70,8,0.18],[160,150,5,0.14],[200,100,4,0.12]].forEach(([dx,dy,r,a])=>{
+    const g=ctx.createRadialGradient(dx,dy,0,dx,dy,r);
+    g.addColorStop(0,`rgba(200,220,255,${a})`); g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(dx,dy,r,0,Math.PI*2); ctx.fill();
+  });
+},256);
+
+// ═══════════════════════════════════════════════════════════════
+// PARTICLE POOL
+// ═══════════════════════════════════════════════════════════════
+const pPos = new Float32Array(CFG.MAX_PART*3);
+const pCol = new Float32Array(CFG.MAX_PART*3);
+const pSz  = new Float32Array(CFG.MAX_PART);
+const pool = [];
+for(let i=0;i<CFG.MAX_PART;i++) pool.push({a:false,life:0,ml:1,x:0,y:0,z:0,vx:0,vy:0,vz:0,r:1,g:1,b:1,sz:1,type:0});
+
+function spawn(x,y,z,vx,vy,vz,r,g,b,sz,life,type){
+  for(const p of pool){ if(!p.a){p.a=true;p.life=life;p.ml=life;p.x=x;p.y=y;p.z=z;p.vx=vx;p.vy=vy;p.vz=vz;p.r=r;p.g=g;p.b=b;p.sz=sz;p.type=type;return;} }
+}
+function upPart(dt){
+  let pi=0;
+  for(const p of pool){
+    if(!p.a) continue;
+    p.life-=dt;
+    if(p.life<=0){p.a=false;continue;}
+    const t=Math.max(0,p.life/p.ml);
+    p.x+=p.vx*dt; p.y+=p.vy*dt; p.z+=p.vz*dt;
+    if(p.type===0){p.vy-=CFG.GRAVITY*0.22*dt;p.vx*=0.978;p.vz*=0.978;}
+    else if(p.type===1){p.vy+=1.2*dt;p.vx*=0.982;p.vz*=0.982;}
+    else if(p.type===2){p.vy-=CFG.GRAVITY*0.65*dt;}
+    else if(p.type===3){p.vy-=CFG.GRAVITY*0.12*dt;p.vx*=0.97;p.vz*=0.97;}
+    else if(p.type===4){p.vy-=CFG.GRAVITY*0.04*dt;p.vx*=0.96;p.vz*=0.96;}
+    pPos[pi*3]=p.x; pPos[pi*3+1]=p.y; pPos[pi*3+2]=p.z;
+    let r=p.r,g=p.g,b=p.b,s=p.sz;
+    if(p.type===0){r=1;g=t>0.55?0.85:t*1.3;b=t>0.65?0.4*t:0;s=p.sz*(0.3+t*0.7);}
+    else if(p.type===1){const v=0.1+(1-t)*0.22;r=v;g=v;b=v;s=p.sz*(1+(1-t)*4.5);}
+    else if(p.type===2){r=1;g=0.7*t;b=0.05*t;s=p.sz*t*0.85;}
+    else if(p.type===3){r=0.62*t;g=0.5*t;b=0.3*t;s=p.sz*(1+(1-t)*2.2);}
+    else if(p.type===4){r=1;g=0.88;b=0.55;s=p.sz*t;}
+    pCol[pi*3]=r;pCol[pi*3+1]=g;pCol[pi*3+2]=b;pSz[pi]=s;
+    pi++;
+  }
+  for(let i=pi;i<CFG.MAX_PART;i++){pPos[i*3+1]=-99999;pSz[i]=0;}
+  partGeo.attributes.position.needsUpdate=true;
+  partGeo.attributes.color.needsUpdate=true;
+  partGeo.attributes.size.needsUpdate=true;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXPLOSION LIGHT POOL
+// ═══════════════════════════════════════════════════════════════
+let pooledLights = [];
+function initLightPool(){
+  for(let i=0;i<CFG.POOL_LIGHTS;i++){
+    const l=new THREE.PointLight(0xff5500,0,0);
+    scene.add(l);
+    pooledLights.push({l,inUse:false,life:0,ml:0,phase:0});
+  }
+}
+function grabLight(x,y,z,color,intensity,range,life,phase){
+  // Find free or steal dimmest
+  let slot=null;
+  for(const p of pooledLights){if(!p.inUse){slot=p;break;}}
+  if(!slot){
+    let minI=Infinity;
+    for(const p of pooledLights){if(p.l.intensity<minI){minI=p.l.intensity;slot=p;}}
+  }
+  slot.inUse=true; slot.life=life; slot.ml=life; slot.phase=phase;
+  slot.l.color.setHex(color);
+  slot.l.intensity=intensity;
+  slot.l.distance=range;
+  slot.l.position.set(x,y,z);
+}
+function upLights(dt){
+  for(const p of pooledLights){
+    if(!p.inUse) continue;
+    p.life-=dt;
+    if(p.life<=0){p.l.intensity=0;p.inUse=false;continue;}
+    const t=p.life/p.ml;
+    if(p.phase===0) p.l.intensity=p.l.intensity*(t>0.7?0.88:0.78); // flash
+    else p.l.intensity*=0.97;
+    if(t<0.15) p.l.intensity*=0.8;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXPLOSION
+// ═══════════════════════════════════════════════════════════════
+function rnd(n){return(Math.random()-0.5)*2*n;}
+function rndSph(){const th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);return{x:Math.sin(ph)*Math.cos(th),y:Math.sin(ph)*Math.sin(th),z:Math.cos(ph)};}
+function rndHemi(){const d=rndSph();d.y=Math.abs(d.y)+0.1;return d;}
+
+function explode(x,y,z,scale=1.0){
+  const S=scale;
+  // Shockwave ring
+  for(let i=0;i<100;i++){const a=(i/100)*Math.PI*2;spawn(x+Math.cos(a)*0.3,y,z+Math.sin(a)*0.3,Math.cos(a)*100*S,1.5+Math.random()*2,Math.sin(a)*100*S,1,0.88,0.55,(2.5+Math.random()*3.5)*S,0.35,4);}
+  // Sparks burst
+  for(let i=0;i<280*S;i++){const d=rndSph();const sp=45+Math.random()*85*S;spawn(x,y,z,d.x*sp,Math.abs(d.y)*sp*0.9,d.z*sp,1,0.85,0.7,(0.8+Math.random()*1.8)*S,0.2+Math.random()*0.35,2);}
+  // Fireball
+  for(let i=0;i<500*S;i++){const d=rndHemi();const sp=7+Math.random()*20*S;spawn(x+rnd(1.5*S),y+rnd(1.5*S),z+rnd(1.5*S),d.x*sp,d.y*sp*1.6+2,d.z*sp,1,0.45+Math.random()*0.4,0,(2+Math.random()*8)*S,0.5+Math.random()*2.2,0);}
+  // Black smoke column
+  for(let i=0;i<200*S;i++){const d=rndHemi();const sp=3+Math.random()*9*S;spawn(x+rnd(5*S),y+rnd(1.5),z+rnd(5*S),d.x*sp*0.35,5+d.y*12*S,d.z*sp*0.35,0.2,0.2,0.2,(7+Math.random()*18)*S,3+Math.random()*6,1);}
+  // Ground dust
+  for(let i=0;i<180*S;i++){const a=Math.random()*Math.PI*2;const r=Math.random()*14*S;spawn(x+Math.cos(a)*r,y,z+Math.sin(a)*r,Math.cos(a)*(12+Math.random()*28)*S,0.5+Math.random()*7,Math.sin(a)*(12+Math.random()*28)*S,0.7,0.55,0.33,(4+Math.random()*11)*S,1.8+Math.random()*4,3);}
+  // Heavy debris
+  for(let i=0;i<50*S;i++){const d=rndSph();const sp=12+Math.random()*38*S;spawn(x,y,z,d.x*sp,Math.abs(d.y)*sp+2,d.z*sp,0.85,0.5,0.22,(0.4+Math.random()*1.5)*S,0.9+Math.random()*2,2);}
+
+  // Lights: instant white flash + sustained orange bloom + lingering ember
+  grabLight(x,y+1,z, 0xffffff, 55*S, 380*S, 0.12, 0);
+  grabLight(x,y+3*S,z, 0xff5500, 25*S, 280*S, 2.5+S, 1);
+  grabLight(x,y+6*S,z, 0xff2200, 10*S, 160*S, 5+S*2, 1);
+
+  doFlash(Math.min(0.85, 0.3*S));
+  // Map marker
+  mapExplosions.push({wx:x,wz:z,life:2.5});
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MISSILE SYSTEM
+// ═══════════════════════════════════════════════════════════════
+function computeVel(from, to){
+  const dx=to.x-from.x, dz=to.z-from.z;
+  const R=Math.hypot(dx,dz)+0.01, dh=to.y-from.y;
+  const hDir=new THREE.Vector3(dx/R,0,dz/R);
+  const g=CFG.GRAVITY;
+  for(const theta of [Math.PI*0.38,Math.PI*0.30,Math.PI*0.24,Math.PI*0.18]){
+    const cosT=Math.cos(theta),sinT=Math.sin(theta),tanT=sinT/cosT;
+    const denom=2*cosT*cosT*(R*tanT-dh);
+    if(denom>0){const v=Math.sqrt(g*R*R/denom);if(v<700){const vel=hDir.clone().multiplyScalar(v*cosT);vel.y=v*sinT;return vel;}}
+  }
+  const vel=hDir.clone().multiplyScalar(90*0.6); vel.y=90*0.85; return vel;
+}
+
+function buildMissileMesh(){
+  const G=getGeos(), M=getMats(), grp=new THREE.Group();
+  grp.add(objAt(G.nose,M.nose,0,1.6,0));
+  grp.add(objAt(G.band,M.eng,0,1.29,0));
+  grp.add(objAt(G.body,M.body,0,0.45,0));
+  grp.add(objAt(G.eng, M.eng, 0,-0.39,0));
+  grp.add(objAt(G.nozz,M.nozz,0,-0.68,0));
+  for(let i=0;i<4;i++){const fw=new THREE.Group();fw.rotation.y=(i/4)*Math.PI*2;const f=new THREE.Mesh(G.fin,M.fin);f.position.y=-0.52;fw.add(f);grp.add(fw);}
+  return grp;
+}
+function objAt(geo,mat,x,y,z){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);return m;}
+
+function createMissile(launchPos, vel){
+  const mesh = buildMissileMesh();
+  mesh.position.copy(launchPos);
+  scene.add(mesh);
+
+  // Flare sprites — 3 layers
+  const mkSp=(tex,sz,op)=>{const m=new THREE.SpriteMaterial({map:tex,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,opacity:op});const s=new THREE.Sprite(m);s.scale.setScalar(sz);return s;};
+  const fCore   = mkSp(TEX_CORE,  4,    0.95);
+  const fHalo   = mkSp(TEX_HALO,  14,   0.55);
+  const fStreak = mkSp(TEX_STREAK,18,   0.25);
+  // Streak has non-uniform scale
+  fStreak.scale.set(20, 1.4, 1);
+  // Attach to world (not mesh) for correct billboarding
+  scene.add(fCore); scene.add(fHalo); scene.add(fStreak);
+
+  // Soft local glow light (pooled but attached via position tracking)
+  return {
+    mesh, vel:vel.clone(), alive:true, age:0,
+    fCore, fHalo, fStreak,
+    trailT:0, burnTime:6+Math.random()*5,
+    launchY: launchPos.y,
+  };
+}
+
+const _up    = new THREE.Vector3(0,1,0);
+const _tmpV  = new THREE.Vector3();
+const _engDir= new THREE.Vector3();
+const _toMis = new THREE.Vector3();
+const _quatTemp = new THREE.Quaternion();
+
+function upMissiles(dt){
+  for(const m of missiles){
+    if(!m.alive) continue;
+    m.age+=dt;
+    m.vel.y-=CFG.GRAVITY*dt;
+    m.mesh.position.addScaledVector(m.vel,dt);
+
+    // Orient
+    _tmpV.copy(m.vel).normalize();
+    if(_tmpV.lengthSq()>0.0001) m.mesh.quaternion.setFromUnitVectors(_up,_tmpV);
+
+    const burning=m.age<m.burnTime;
+    const {fCore, fHalo, fStreak} = m;
+    const wp=m.mesh.position;
+
+    // Flare angle factor
+    _engDir.set(0,-1,0).applyQuaternion(m.mesh.quaternion);
+    _toMis.copy(camera.position).sub(wp).normalize();
+    const angleFac=Math.max(0, _engDir.dot(_toMis));
+    const dist=camera.position.distanceTo(wp);
+    const nightBoost=1+(1-dayness)*2.2;
+    const flarePow=angleFac*nightBoost*(burning?1:0);
+    const pulsate=0.88+Math.sin(m.age*30)*0.12;
+
+    // Update flare sprites position
+    const ep=_tmpV.copy(_engDir).multiplyScalar(0.75).add(wp);
+    fCore.position.copy(ep);
+    fHalo.position.copy(ep);
+    fStreak.position.copy(ep);
+
+    if(burning){
+      const coreS=2.5+flarePow*7;
+      fCore.scale.setScalar(coreS*pulsate);
+      fHalo.scale.setScalar((10+flarePow*28)*pulsate);
+      fStreak.scale.set((12+flarePow*55)*pulsate, (1.2+flarePow*0.8)*pulsate, 1);
+      fCore.material.opacity  =(0.75+flarePow*0.25)*pulsate;
+      fHalo.material.opacity  =(0.2+flarePow*0.45)*pulsate;
+      fStreak.material.opacity=(0.05+flarePow*0.45)*pulsate;
+    } else {
+      fCore.material.opacity  *=0.92;
+      fHalo.material.opacity  *=0.92;
+      fStreak.material.opacity*=0.92;
+      fCore.scale.multiplyScalar(0.95);
+      fHalo.scale.multiplyScalar(0.95);
+    }
+
+    // Exhaust particles
+    m.trailT+=dt;
+    if(m.trailT>0.02 && burning){
+      m.trailT=0;
+      const ex=_engDir.clone().multiplyScalar(1.4);
+      const ep2=wp.clone().add(ex);
+      for(let i=0;i<7;i++){
+        spawn(ep2.x+rnd(0.12),ep2.y+rnd(0.12),ep2.z+rnd(0.12),
+          ex.x*(16+Math.random()*12)+rnd(1.5),ex.y*(16+Math.random()*12)+rnd(1.5),ex.z*(16+Math.random()*12)+rnd(1.5),
+          1,0.55,0, 0.6+Math.random()*1.1, 0.22+Math.random()*0.32,0);
+      }
+      for(let i=0;i<3;i++){
+        spawn(ep2.x+rnd(0.25),ep2.y+rnd(0.25),ep2.z+rnd(0.25),
+          ex.x*3+rnd(1),ex.y*3+rnd(1),ex.z*3+rnd(1),
+          0.35,0.35,0.35, 1.8+Math.random()*2.5, 1.5+Math.random()*2.5,1);
+      }
+      if(Math.random()<0.25){const d=rndSph();spawn(ep2.x,ep2.y,ep2.z,d.x*18,d.y*18,d.z*18,1,0.9,0.5,0.35,0.45+Math.random()*0.4,2);}
+    }
+
+    // Ground hit
+    const gy=gnd(wp.x,wp.z);
+    if(wp.y<=gy+0.5){
+      explode(wp.x,gy+0.5,wp.z, 1.0+Math.random()*0.5);
+      scene.remove(m.mesh); scene.remove(m.fCore); scene.remove(m.fHalo); scene.remove(m.fStreak);
+      m.alive=false;
+    }
+  }
+  for(let i=missiles.length-1;i>=0;i--) if(!missiles[i].alive) missiles.splice(i,1);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LAUNCHER MODEL (MLRS tactical truck)
+// ═══════════════════════════════════════════════════════════════
+let tubeWorldPositions=[]; // updated each frame when launcher moves (static here)
+function buildLauncher(wx,wy,wz){
+  const grp=new THREE.Group();
+  const lMat=new THREE.MeshPhongMaterial({color:0x3a4028,specular:0x111111,shininess:20});
+  const dMat=new THREE.MeshPhongMaterial({color:0x28301c,specular:0x111111,shininess:10});
+  const mMat=new THREE.MeshPhongMaterial({color:0x222218,specular:0x111111,shininess:10});
+  const tMat=new THREE.MeshPhongMaterial({color:0x181810,emissive:0x0a0800,emissiveIntensity:0.4});
+
+  // Chassis
+  const chassis=new THREE.Mesh(new THREE.BoxGeometry(11,1.2,3.4),lMat); chassis.position.y=1.0; grp.add(chassis);
+  // Cab
+  const cab=new THREE.Mesh(new THREE.BoxGeometry(3,2.2,3.4),dMat); cab.position.set(-4,2.1,0); grp.add(cab);
+  // Wind screen slight angle
+  const ws=new THREE.Mesh(new THREE.BoxGeometry(0.08,1.4,2.8),new THREE.MeshPhongMaterial({color:0x334455,transparent:true,opacity:0.55}));
+  ws.position.set(-2.45,2.2,0); grp.add(ws);
+  // Fenders & detail strips
+  [-1.85,1.85].forEach(sx=>{
+    const fdr=new THREE.Mesh(new THREE.BoxGeometry(11,0.25,0.5),dMat); fdr.position.set(0,0.62,sx*1.8); grp.add(fdr);
+  });
+  // 6 Wheels (3 axles)
+  const wGeo=new THREE.CylinderGeometry(0.62,0.62,0.45,14);
+  wGeo.rotateX(Math.PI/2);
+  const hubGeo=new THREE.CylinderGeometry(0.22,0.22,0.48,8);
+  hubGeo.rotateX(Math.PI/2);
+  const hubMat=new THREE.MeshPhongMaterial({color:0x111111,specular:0x333333,shininess:80});
+  [-3.5,-0.2,3.1].forEach(ax=>{
+    [-1.95,1.95].forEach(sz=>{
+      const w=new THREE.Mesh(wGeo,mMat); w.position.set(ax,0.62,sz); grp.add(w);
+      const h=new THREE.Mesh(hubGeo,hubMat); h.position.set(ax,0.62,sz); grp.add(h);
+    });
+  });
+  // Support legs (4 corner deployed)
+  [[3.5,-1.6],[3.5,1.6],[-3.5,-1.6],[-3.5,1.6]].forEach(([lx,lz])=>{
+    const leg=new THREE.Mesh(new THREE.BoxGeometry(0.22,1.5,0.22),mMat);
+    leg.position.set(lx,0.15,lz); grp.add(leg);
+    const pad=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.12,0.7),dMat);
+    pad.position.set(lx,-0.6,lz); grp.add(pad);
+  });
+
+  // Elevation arm (raises pod to ~72 deg)
+  const arm=new THREE.Group(); arm.position.set(2.5,1.6,0);
+  const armB=new THREE.Mesh(new THREE.BoxGeometry(0.7,4.8,0.7),dMat);
+  armB.position.y=2.4; arm.add(armB);
+  arm.rotation.z=-Math.PI*0.22; // tilted ~72° from horizontal
+  grp.add(arm);
+
+  // Hinge cylinders
+  const hingeGeo=new THREE.CylinderGeometry(0.35,0.35,3.6,10);
+  hingeGeo.rotateX(Math.PI/2);
+  const hinge=new THREE.Mesh(hingeGeo,mMat); hinge.position.set(2.5,1.65,0); grp.add(hinge);
+
+  // Pod housing at top of arm
+  const pod=new THREE.Group();
+  const podBox=new THREE.Mesh(new THREE.BoxGeometry(5.2,1.5,2.6),dMat);
+  pod.add(podBox);
+  // Front face plate
+  const fp=new THREE.Mesh(new THREE.BoxGeometry(0.12,1.5,2.6),mMat); fp.position.x=-2.65; pod.add(fp);
+  // Tube openings (3×4 grid) - visible circles
+  const tubeGeo=new THREE.CylinderGeometry(0.18,0.18,5.0,10);
+  tubeGeo.rotateX(Math.PI/2); // point along local Z (which becomes launch axis)
+  const innerGeo=new THREE.CylinderGeometry(0.14,0.14,5.05,8);
+  innerGeo.rotateX(Math.PI/2);
+  const innerMat=new THREE.MeshPhongMaterial({color:0x050505,emissive:0x100800,emissiveIntensity:0.5});
+  const localTubePos=[];
+  for(let row=0;row<3;row++){
+    for(let col=0;col<4;col++){
+      const tx=-1.5+col*1.0, ty=-0.45+row*0.52;
+      const t=new THREE.Mesh(tubeGeo,tMat); t.position.set(tx,ty,0); pod.add(t);
+      const ti=new THREE.Mesh(innerGeo,innerMat); ti.position.set(tx,ty,0); pod.add(ti);
+      localTubePos.push(new THREE.Vector3(tx,ty,2.5)); // tube mouth at +Z local
+    }
+  }
+  // Attach pod to arm top
+  pod.position.copy(armB.position).add(new THREE.Vector3(-0.5,2.1,0));
+  // We need the pod in arm local space
+  arm.add(pod);
+
+  grp.position.set(wx,wy,wz);
+  grp.castShadow=true;
+  scene.add(grp);
+
+  // Compute tube world positions (static since launcher doesn't move)
+  // arm + pod rotation is complex - easier to just offset from launcher pos
+  const armAngle=-Math.PI*0.22;
+  const armLen=4.8;
+  // Pod top in world: arm pivot + rotated arm + pod offset
+  // We'll use a simpler fixed tube offset pattern for launch positions
+  const tubeLaunchPos=[];
+  const armPivot=new THREE.Vector3(wx+2.5, wy+1.6, wz);
+  const podCenter=new THREE.Vector3(
+    armPivot.x + Math.cos(armAngle+Math.PI/2)*armLen*0.85 - 0.5,
+    armPivot.y + Math.sin(armAngle+Math.PI/2)*armLen*0.85 + 2.0,
+    wz
+  );
+  // Tube mouth direction = along arm angle + offset
+  for(let row=0;row<3;row++){
+    for(let col=0;col<4;col++){
+      const lx=-1.5+col*1.0, ly=-0.45+row*0.52;
+      // Rotate these local offsets by arm angle
+      const ax=lx; const ay=ly;
+      tubeLaunchPos.push(new THREE.Vector3(
+        podCenter.x + ax,
+        podCenter.y + ay,
+        wz
+      ));
+    }
+  }
+  return {group:grp, worldPos:new THREE.Vector3(wx,wy,wz), tubePositions:tubeLaunchPos};
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCATTER TARGETING
+// ═══════════════════════════════════════════════════════════════
+function scatterTargets(center, count){
+  // Distribute missiles: stratified scatter, more missiles = wider pattern
+  const radius = 8 + count * 1.2;
+  const targets=[];
+  for(let i=0;i<count;i++){
+    const angle=(i/count)*Math.PI*2 + rnd(0.4);
+    const r=Math.sqrt(Math.random())*radius; // uniform circle distribution
+    const tx=center.x + Math.cos(angle)*r + rnd(3);
+    const tz=center.z + Math.sin(angle)*r + rnd(3);
+    targets.push(new THREE.Vector3(tx, gnd(tx,tz)+0.2, tz));
+  }
+  return targets;
+}
+
+function fireSalvo(count){
+  if(!targetWorld) return;
+  const targets=scatterTargets(targetWorld, count);
+  const tubes=launcherObj.tubePositions;
+  for(let i=0;i<count;i++){
+    const delay=i*0.14 + Math.random()*0.04;
+    const tubeIdx=i%tubes.length;
+    const tp=tubes[tubeIdx];
+    const launchPos=tp.clone();
+    const tgt=targets[i];
+    setTimeout(()=>{
+      if(missiles.filter(m=>m.alive).length>=CFG.MAX_MISS) return;
+      const vel=computeVel(launchPos, tgt);
+      missiles.push(createMissile(launchPos, vel));
+      totalFired++;
+      // Launch particles
+      for(let j=0;j<18;j++){const d=rndSph();spawn(launchPos.x,launchPos.y,launchPos.z,d.x*10+vel.x*0.06,Math.abs(d.y)*7+3,d.z*10+vel.z*0.06,1,0.55,0.05,0.8+Math.random()*1.8,0.3+Math.random()*0.5,0);}
+      for(let j=0;j<8;j++){spawn(launchPos.x,launchPos.y,launchPos.z,rnd(4),2+Math.random()*5,rnd(4),0.3,0.3,0.3,2+Math.random()*3,1.2+Math.random()*2,1);}
+    }, delay*1000);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAP SYSTEM
+// ═══════════════════════════════════════════════════════════════
+const MAP_SZ=CFG.MAP_SZ;
+const HALF_WORLD=CFG.MAP_WORLD/2;
+function w2m(wx,wz){ return{mx:(wx/HALF_WORLD*0.5+0.5)*MAP_SZ, my:(wz/HALF_WORLD*0.5+0.5)*MAP_SZ}; }
+
+function buildMapBg(){
+  const c=document.createElement('canvas'); c.width=c.height=MAP_SZ;
+  const ctx=c.getContext('2d');
+  const img=ctx.createImageData(MAP_SZ,MAP_SZ);
+  const step=MAP_SZ;
+  for(let py=0;py<step;py++){
+    for(let px=0;px<step;px++){
+      const wx=(px/step-0.5)*CFG.MAP_WORLD;
+      const wz=(py/step-0.5)*CFG.MAP_WORLD;
+      const h=gnd(wx,wz);
+      const hn=Math.max(0,Math.min(1,(h+35)/65));
+      let r,g,b;
+      if(hn<0.3){const t=hn/0.3;r=lerp(28,95,t);g=lerp(22,72,t);b=lerp(14,42,t);}
+      else if(hn<0.65){const t=(hn-0.3)/0.35;r=lerp(95,178,t);g=lerp(72,140,t);b=lerp(42,72,t);}
+      else{const t=(hn-0.65)/0.35;r=lerp(178,135,t);g=lerp(140,108,t);b=lerp(72,80,t);}
+      // contour
+      const cont=Math.abs(Math.sin(h*0.75))<0.055?0.72:1.0;
+      const i=(py*MAP_SZ+px)*4;
+      img.data[i]=r*cont; img.data[i+1]=g*cont; img.data[i+2]=b*cont; img.data[i+3]=255;
+    }
+  }
+  ctx.putImageData(img,0,0);
+  // Grid overlay
+  ctx.strokeStyle='rgba(255,160,40,0.07)'; ctx.lineWidth=0.5;
+  for(let i=0;i<=10;i++){
+    const v=(i/10)*MAP_SZ;
+    ctx.beginPath();ctx.moveTo(v,0);ctx.lineTo(v,MAP_SZ);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,v);ctx.lineTo(MAP_SZ,v);ctx.stroke();
+  }
+  return c;
+}
+function lerp(a,b,t){return a+(b-a)*t;}
+
+function initMap(){
+  mapBg=buildMapBg();
+  const mc=document.getElementById('map-canvas');
+  mapCtx=mc.getContext('2d');
+  mc.addEventListener('click', e=>{
+    const rect=mc.getBoundingClientRect();
+    const mx=(e.clientX-rect.left)*(MAP_SZ/rect.width);
+    const my=(e.clientY-rect.top)*(MAP_SZ/rect.height);
+    const wx=(mx/MAP_SZ-0.5)*CFG.MAP_WORLD;
+    const wz=(my/MAP_SZ-0.5)*CFG.MAP_WORLD;
+    targetWorld=new THREE.Vector3(wx,gnd(wx,wz)+0.2,wz);
+    document.getElementById('btn-fire').textContent='FIRE';
+  });
+}
+
+function drawMap(){
+  mapCtx.drawImage(mapBg,0,0);
+
+  // Explosion flashes
+  for(let i=mapExplosions.length-1;i>=0;i--){
+    const e=mapExplosions[i];
+    e.life-=0.016;
+    if(e.life<=0){mapExplosions.splice(i,1);continue;}
+    const t=e.life/2.5;
+    const {mx,my}=w2m(e.wx,e.wz);
+    const g=mapCtx.createRadialGradient(mx,my,0,mx,my,10*(1-t)+2);
+    g.addColorStop(0,`rgba(255,120,30,${Math.min(1,t*3)*0.9})`);
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    mapCtx.fillStyle=g; mapCtx.beginPath();
+    mapCtx.arc(mx,my,10*(1-t)+4,0,Math.PI*2); mapCtx.fill();
+  }
+
+  // Active missile trails
+  mapCtx.fillStyle='rgba(255,160,40,0.75)';
+  for(const m of missiles){
+    if(!m.alive) continue;
+    const {mx,my}=w2m(m.mesh.position.x,m.mesh.position.z);
+    mapCtx.beginPath(); mapCtx.arc(mx,my,1.8,0,Math.PI*2); mapCtx.fill();
+  }
+
+  // Target marker
+  if(targetWorld){
+    const {mx,my}=w2m(targetWorld.x,targetWorld.z);
+    mapCtx.strokeStyle='rgba(255,50,20,0.85)'; mapCtx.lineWidth=1;
+    mapCtx.beginPath(); mapCtx.arc(mx,my,7,0,Math.PI*2); mapCtx.stroke();
+    mapCtx.beginPath(); mapCtx.moveTo(mx-11,my); mapCtx.lineTo(mx+11,my); mapCtx.stroke();
+    mapCtx.beginPath(); mapCtx.moveTo(mx,my-11); mapCtx.lineTo(mx,my+11); mapCtx.stroke();
+  }
+
+  // Launcher icon
+  if(launcherObj){
+    const {mx,my}=w2m(launcherObj.worldPos.x,launcherObj.worldPos.z);
+    mapCtx.strokeStyle='rgba(255,200,40,0.9)'; mapCtx.lineWidth=1.5;
+    mapCtx.strokeRect(mx-5,my-5,10,10);
+    mapCtx.beginPath(); mapCtx.moveTo(mx,my-9); mapCtx.lineTo(mx,my-5); mapCtx.stroke();
+  }
+
+  // Player icon (chevron arrow)
+  const {mx:px,my:py}=w2m(camera.position.x,camera.position.z);
+  mapCtx.save();
+  mapCtx.translate(px,py);
+  mapCtx.rotate(-yaw+Math.PI);
+  mapCtx.strokeStyle='rgba(80,255,120,0.9)'; mapCtx.lineWidth=1.2;
+  mapCtx.beginPath(); mapCtx.moveTo(0,-7); mapCtx.lineTo(5,4); mapCtx.lineTo(0,1); mapCtx.lineTo(-5,4); mapCtx.closePath(); mapCtx.stroke();
+  mapCtx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SKY
+// ═══════════════════════════════════════════════════════════════
+function buildSky(){
+  const geo=new THREE.SphereGeometry(4800,24,14);
+  skyMat=new THREE.ShaderMaterial({
+    side:THREE.BackSide,
+    uniforms:{sunDir:{value:new THREE.Vector3(0,1,0)}},
+    vertexShader:`varying vec3 vD;void main(){vD=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+    fragmentShader:`
+      uniform vec3 sunDir;varying vec3 vD;
+      void main(){
+        vec3 d=normalize(vD);float h=clamp(d.y,0.0,1.0);
+        float sH=sunDir.y;
+        float dayT=smoothstep(-0.06,0.38,sH);
+        float nightT=1.0-smoothstep(-0.08,0.09,sH);
+        float setT=smoothstep(-0.08,0.14,sH)*(1.0-smoothstep(0.14,0.55,sH));
+        vec3 dayZ=vec3(0.11,0.35,0.88),dayH=vec3(0.62,0.79,1.0);
+        vec3 setZ=vec3(0.04,0.055,0.16),setH=vec3(1.0,0.28,0.04);
+        vec3 ngtZ=vec3(0.003,0.006,0.028),ngtH=vec3(0.008,0.008,0.042);
+        vec3 zen=mix(dayZ,setZ,setT); zen=mix(ngtZ,zen,1.0-nightT);
+        vec3 hor=mix(dayH,setH,setT); hor=mix(ngtH,hor,1.0-nightT);
+        vec3 sky=mix(hor,zen,pow(h,0.42));
+        // Sun disc
+        vec3 sn=normalize(sunDir); float sd=dot(d,sn);
+        float disc=smoothstep(0.9993,0.9998,sd)*(1.0-nightT*0.85);
+        vec3 sCol=mix(vec3(1.0,0.45,0.08),vec3(1.0,1.0,0.92),dayT);
+        sky+=sCol*disc*9.0;
+        float cor=pow(max(sd,0.0),50.0)*(1.0-nightT*0.8);
+        sky+=mix(vec3(1.0,0.25,0.0),vec3(1.0,0.88,0.55),dayT)*cor*0.55;
+        // Stars
+        float ss=fract(sin(dot(d*175.0,vec3(127.1,311.7,74.4)))*43758.5453);
+        float star=step(0.9968,ss)*nightT;
+        sky+=vec3(star*(0.5+0.5*fract(ss*50.0)));
+        // Moon
+        vec3 mn=-sn; float md=dot(d,mn);
+        sky+=vec3(0.78,0.84,1.0)*smoothstep(0.9991,0.9996,md)*nightT*2.8;
+        sky+=vec3(0.22,0.26,0.45)*pow(max(md,0.0),25.0)*nightT*0.35;
+        // Horizon glow sunset
+        float hzd=pow(max(1.0-abs(h)*4.5,0.0),3.0);
+        sky+=vec3(1.0,0.22,0.0)*setT*hzd*0.55;
+        gl_FragColor=vec4(sky,1.0);
+      }`
+  });
+  const sky=new THREE.Mesh(geo,skyMat); scene.add(sky); return sky;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TERRAIN
+// ═══════════════════════════════════════════════════════════════
+function buildTerrain(){
+  const geo=new THREE.PlaneGeometry(CFG.TERRAIN_SZ,CFG.TERRAIN_SZ,CFG.TERRAIN_SEG,CFG.TERRAIN_SEG);
+  geo.rotateX(-Math.PI/2);
+  const p=geo.attributes.position;
+  for(let i=0;i<p.count;i++) p.setY(i,gnd(p.getX(i),p.getZ(i)));
+  geo.computeVertexNormals();
+  terrainMat=new THREE.ShaderMaterial({
+    uniforms:{sunDir:{value:new THREE.Vector3(0,1,0)},camPos:{value:new THREE.Vector3()}},
+    vertexShader:`
+      varying vec3 vN,vW;varying float vH;
+      void main(){vec4 wp=modelMatrix*vec4(position,1.0);vW=wp.xyz;vN=normalize(normalMatrix*normal);vH=position.y;gl_Position=projectionMatrix*viewMatrix*wp;}`,
+    fragmentShader:`
+      uniform vec3 sunDir,camPos;varying vec3 vN,vW;varying float vH;
+      void main(){
+        vec3 sb=vec3(0.70,0.52,0.27),sh=vec3(0.86,0.70,0.40),rc=vec3(0.50,0.38,0.27);
+        float sl=1.0-vN.y;
+        vec3 base=mix(sb,sh,clamp(vH/18.0,0.0,1.0));
+        base=mix(base,rc,smoothstep(0.22,0.62,sl));
+        float rip=sin(vW.x*0.85+vW.z*0.48)*0.014+sin(vW.x*2.1-vW.z*1.6)*0.006;
+        base+=rip*0.06;
+        float sH=clamp(sunDir.y,-0.2,1.0);
+        float dayT=smoothstep(-0.04,0.3,sH),nightT=1.0-smoothstep(-0.07,0.07,sH),setT=smoothstep(-0.07,0.12,sH)*(1.0-smoothstep(0.12,0.48,sH));
+        vec3 sCol=mix(vec3(1.0,0.42,0.08),vec3(1.0,0.92,0.76),dayT);
+        vec3 aCol=mix(vec3(0.05,0.07,0.15),vec3(0.22,0.19,0.14),dayT);
+        aCol=mix(vec3(0.025,0.03,0.08),aCol,1.0-nightT);
+        float NL=max(dot(vN,normalize(sunDir)),0.0);
+        float diff=NL*mix(0.18,2.2,dayT*(1.0-nightT*0.88));
+        vec3 color=base*(aCol+sCol*diff);
+        float dist=length(camPos-vW);
+        float fg=smoothstep(550.0,2000.0,dist);
+        vec3 fc=mix(vec3(0.68,0.58,0.42),vec3(0.08,0.10,0.20),nightT);
+        color=mix(color,fc,fg*0.65);
+        gl_FragColor=vec4(color,1.0);
+      }`
+  });
+  const m=new THREE.Mesh(geo,terrainMat); m.receiveShadow=true; scene.add(m); return m;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ENVIRONMENT
+// ═══════════════════════════════════════════════════════════════
+function buildEnv(){
+  const dMat=new THREE.MeshLambertMaterial({color:0xb07836});
+  const rMat=new THREE.MeshLambertMaterial({color:0x665030});
+  for(let i=0;i<70;i++){
+    const a=Math.random()*Math.PI*2,r=60+Math.random()*900;
+    const x=Math.cos(a)*r,z=Math.sin(a)*r,h=3+Math.random()*10;
+    const g=new THREE.SphereGeometry(1,7,5);g.scale(13+Math.random()*28,h,16+Math.random()*36);
+    const m=new THREE.Mesh(g,dMat);m.position.set(x,gnd(x,z)+h*0.45,z);m.receiveShadow=true;scene.add(m);
+  }
+  for(let i=0;i<50;i++){
+    const a=Math.random()*Math.PI*2,r=30+Math.random()*700;
+    const x=Math.cos(a)*r,z=Math.sin(a)*r;
+    const g=new THREE.DodecahedronGeometry(0.6+Math.random()*4,0);
+    const m=new THREE.Mesh(g,rMat);m.position.set(x,gnd(x,z)+0.25,z);m.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);m.castShadow=true;scene.add(m);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TIME
+// ═══════════════════════════════════════════════════════════════
+const _sunDir=new THREE.Vector3();
+function upTime(dt){
+  timeOfDay=(timeOfDay+dt/CFG.DAY_DUR)%1.0;
+  const angle=(timeOfDay-0.25)*Math.PI*2;
+  _sunDir.set(Math.cos(angle)*0.55, Math.sin(angle), 0.38).normalize();
+  skyMat.uniforms.sunDir.value.copy(_sunDir);
+  terrainMat.uniforms.sunDir.value.copy(_sunDir);
+  terrainMat.uniforms.camPos.value.copy(camera.position);
+  sunLight.position.copy(_sunDir).multiplyScalar(1000);
+  const d=Math.max(0,_sunDir.y);
+  dayness=d;
+  sunLight.intensity=d*2.8+0.05;
+  sunLight.color.setRGB(1.0,0.86+d*0.14,0.62+d*0.38);
+  ambLight.intensity=0.03+smoothJS(0,0.3,_sunDir.y)*0.30;
+  ambLight.color.setRGB(0.18+d*0.28,0.22+d*0.22,0.42);
+  renderer.toneMappingExposure=0.32+d*0.88;
+  const h=Math.floor(timeOfDay*24);
+  const lbls=['MIDNIGHT','PREDAWN','DAWN','MORNING','NOON','AFTERNOON','DUSK','NIGHT'];
+  document.getElementById('timeLbl').textContent=`${String(h).padStart(2,'0')}:00 · ${lbls[Math.min(Math.floor(timeOfDay*8),7)]}`;
+}
+function smoothJS(a,b,x){const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);}
+
+// ═══════════════════════════════════════════════════════════════
+// FLASH
+// ═══════════════════════════════════════════════════════════════
+function doFlash(v){
+  const f=document.getElementById('flash');
+  f.style.transition='opacity 0.04s';f.style.opacity=v;
+  setTimeout(()=>{f.style.transition='opacity 0.4s';f.style.opacity=0;},60);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════════════════════════════════
+function setupControls(){
+  document.addEventListener('mousemove',e=>{
+    if(!isLocked) return;
+    yaw-=e.movementX*0.0018; pitch-=e.movementY*0.0018;
+    pitch=Math.max(-Math.PI*0.45,Math.min(Math.PI*0.45,pitch));
+  });
+  document.addEventListener('pointerlockchange',()=>{isLocked=!!document.pointerLockElement;});
+  renderer.domElement.addEventListener('click',()=>{if(!isLocked)renderer.domElement.requestPointerLock();});
+  document.addEventListener('keydown',e=>{
+    keys[e.code]=true;
+    if(e.code==='KeyT'&&isLocked) timeOfDay=(timeOfDay+0.25)%1.0;
+  });
+  document.addEventListener('keyup',e=>keys[e.code]=false);
+  document.addEventListener('wheel',e=>{fov=Math.max(18,Math.min(90,fov+e.deltaY*0.05));camera.fov=fov;camera.updateProjectionMatrix();});
+
+  // Count buttons
+  document.getElementById('btn-minus').onclick=()=>{missileCount=Math.max(1,missileCount-1);updCount();};
+  document.getElementById('btn-plus' ).onclick=()=>{missileCount=Math.min(80,missileCount+1);updCount();};
+  document.getElementById('btn-fire' ).onclick=()=>{if(targetWorld)fireSalvo(missileCount);};
+}
+function updCount(){ document.getElementById('count-display').textContent=String(missileCount).padStart(2,'0'); }
+
+function upPlayer(dt){
+  if(!isLocked) return;
+  const sp=(keys['ShiftLeft']||keys['ShiftRight'])?20:8;
+  const fwd=new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(0,yaw,0));
+  const rgt=new THREE.Vector3(1,0,0).applyEuler(new THREE.Euler(0,yaw,0));
+  if(keys['KeyW']) camera.position.addScaledVector(fwd,sp*dt);
+  if(keys['KeyS']) camera.position.addScaledVector(fwd,-sp*dt);
+  if(keys['KeyA']) camera.position.addScaledVector(rgt,-sp*dt);
+  if(keys['KeyD']) camera.position.addScaledVector(rgt,sp*dt);
+  camera.position.y+=(gnd(camera.position.x,camera.position.z)+2.8-camera.position.y)*0.15;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LOOP
+// ═══════════════════════════════════════════════════════════════
+let skyMesh;
+function loop(){
+  requestAnimationFrame(loop);
+  const dt=Math.min(clock.getDelta(),0.05);
+  upPlayer(dt);
+  upTime(dt);
+  upMissiles(dt);
+  upPart(dt);
+  upLights(dt);
+  drawMap();
+
+  // HUD
+  document.getElementById('flightLbl').textContent=missiles.filter(m=>m.alive).length;
+  document.getElementById('firedLbl' ).textContent=totalFired;
+
+  camera.rotation.order='YXZ';
+  camera.rotation.y=yaw; camera.rotation.x=pitch;
+  skyMesh.position.copy(camera.position);
+  renderer.render(scene,camera);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════════════
+function boot(){
+  document.getElementById('boot').style.display='none';
+
+  renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+  renderer.setPixelRatio(CFG.PIXEL_RATIO);
+  renderer.setSize(window.innerWidth,window.innerHeight);
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1.2;
+  document.body.appendChild(renderer.domElement);
+  renderer.domElement.style.position='fixed';
+  renderer.domElement.style.inset='0';
+  renderer.domElement.style.zIndex='1';
+
+  scene=new THREE.Scene();
+  camera=new THREE.PerspectiveCamera(fov,window.innerWidth/window.innerHeight,0.1,6000);
+  camera.position.set(0,5,-55);
+  clock=new THREE.Clock();
+
+  // Lights
+  sunLight=new THREE.DirectionalLight(0xfff4dd,2.5);
+  sunLight.castShadow=true;
+  sunLight.shadow.mapSize.set(CFG.SHADOW_SZ,CFG.SHADOW_SZ);
+  sunLight.shadow.camera.near=1; sunLight.shadow.camera.far=1200;
+  sunLight.shadow.camera.left=-350; sunLight.shadow.camera.right=350;
+  sunLight.shadow.camera.top=350; sunLight.shadow.camera.bottom=-350;
+  sunLight.shadow.bias=-0.001;
+  scene.add(sunLight);
+  ambLight=new THREE.AmbientLight(0x223355,0.22);
+  scene.add(ambLight);
+
+  // Build world
+  skyMesh=buildSky();
+  buildTerrain();
+  buildEnv();
+
+  // Launcher
+  const lx=0,lz=28;
+  const ly=gnd(lx,lz);
+  launcherObj=buildLauncher(lx,ly,lz);
+
+  // Particle system
+  partGeo=new THREE.BufferGeometry();
+  partGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));
+  partGeo.setAttribute('color',   new THREE.BufferAttribute(pCol,3));
+  partGeo.setAttribute('size',    new THREE.BufferAttribute(pSz,1));
+  const pMat=new THREE.ShaderMaterial({
+    uniforms:{},
+    vertexShader:`attribute float size;attribute vec3 color;varying vec3 vC;void main(){vC=color;vec4 mv=modelViewMatrix*vec4(position,1.0);gl_PointSize=size*(260.0/-mv.z);gl_Position=projectionMatrix*mv;}`,
+    fragmentShader:`varying vec3 vC;void main(){float d=length(gl_PointCoord-0.5)*2.0;float a=1.0-smoothstep(0.0,1.0,d);a=pow(a,1.35);if(a<0.01)discard;gl_FragColor=vec4(vC,a);}`,
+    transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,vertexColors:true
+  });
+  scene.add(new THREE.Points(partGeo,pMat));
+
+  // Light pool
+  initLightPool();
+  setupControls();
+  initMap();
+
+  window.addEventListener('resize',()=>{
+    camera.aspect=window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth,window.innerHeight);
+  });
+
+  loop();
+}
+</script>
+</body>
+</html>

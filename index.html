@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BALLISTIC COMMAND</title>
+    <link rel="stylesheet" href="/src/styles/main.css">
+</head>
+<body>
+    <div id="boot">
+        <div>
+            <h1>BALLISTIC COMMAND</h1>
+            <div class="bline"></div>
+            <p>WASD · MOVE &nbsp;|&nbsp; MOUSE · LOOK<br>
+               MAP · SET TARGET &amp; FIRE<br>
+               T · ADVANCE TIME &nbsp;|&nbsp; SCROLL · ZOOM<br>
+               CLICK MAP → SET TARGET → FIRE</p>
+            <button id="boot-btn">INITIALIZE</button>
+        </div>
+    </div>
+
+    <div id="flash"></div>
+    <div id="vig"></div>
+    <div id="xh"></div>
+
+    <div id="hud">
+        <div id="htl">SYSTEM READY<br><span id="timeLbl">—</span></div>
+        <div id="htr">IN FLIGHT&nbsp;<span id="flightLbl">0</span><br>TOTAL FIRED&nbsp;<span id="firedLbl">0</span></div>
+        <div id="hbl">WASD MOVE · SCROLL ZOOM · T TIME<br>CLICK MAP → SET TARGET → FIRE</div>
+    </div>
+
+    <div id="map-panel">
+        <div id="map-header">
+            <span id="map-title">TACTICAL DISPLAY</span>
+            <button id="btn-toggle-map">_</button>
+        </div>
+        <div id="map-body">
+            <div id="map-wrap">
+                <canvas id="map-canvas" width="240" height="240"></canvas>
+                <div id="map-scale">0&nbsp;&nbsp;━━━━&nbsp;&nbsp;500m</div>
+            </div>
+            <div id="map-controls">
+                <label>MISSILES</label>
+                <button class="map-btn" id="btn-minus">−</button>
+                <span id="count-display">06</span>
+                <button class="map-btn" id="btn-plus">+</button>
+                <button id="btn-fire" class="ready">FIRE</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>

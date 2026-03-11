@@ -1,0 +1,193 @@
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;overflow:hidden;font-family:'Courier New',monospace;user-select:none}
+
+#boot{
+  position:fixed;inset:0;background:#080604;
+  display:flex;align-items:center;justify-content:center;
+  z-index:300;color:rgba(255,160,40,0.9);text-align:center;
+}
+#boot h1{font-size:18px;letter-spacing:12px;font-weight:normal;margin-bottom:10px}
+.bline{width:160px;height:1px;background:rgba(255,160,40,0.2);margin:10px auto}
+#boot p{font-size:9px;letter-spacing:3px;opacity:0.45;line-height:2.6}
+#boot button{
+  margin-top:20px;padding:9px 32px;border:1px solid rgba(255,160,40,0.4);
+  color:rgba(255,160,40,0.85);font-family:inherit;font-size:9px;
+  letter-spacing:5px;background:transparent;cursor:pointer;transition:.2s;
+}
+#boot button:hover{background:rgba(255,160,40,0.07);border-color:rgba(255,160,40,0.7)}
+
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:500;transition:opacity .3s}
+#vig{position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,0.65)100%);pointer-events:none;z-index:5}
+
+#xh{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:18px;height:18px;pointer-events:none;z-index:10;
+}
+#xh::before{content:'';position:absolute;left:50%;top:2px;bottom:2px;width:1px;background:rgba(255,160,40,0.6);transform:translateX(-50%)}
+#xh::after{content:'';position:absolute;top:50%;left:2px;right:2px;height:1px;background:rgba(255,160,40,0.6);transform:translateY(-50%)}
+
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10}
+#htl{position:absolute;top:16px;left:16px;font-size:8px;letter-spacing:3px;color:rgba(255,160,40,0.35);line-height:2}
+#htr{position:absolute;top:16px;right:16px;font-size:8px;letter-spacing:3px;color:rgba(255,160,40,0.35);text-align:right}
+#hbl{position:absolute;bottom:16px;left:16px;font-size:8px;letter-spacing:2px;color:rgba(255,160,40,0.22);line-height:2}
+
+/* MAP PANEL */
+#map-panel {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 20;
+  pointer-events: all;
+  background: rgba(10, 7, 5, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 160, 40, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  width: 242px;
+}
+
+#map-panel.collapsed {
+  width: 140px;
+}
+
+#map-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 160, 40, 0.05);
+  border-bottom: 1px solid rgba(255, 160, 40, 0.1);
+  cursor: pointer;
+}
+
+#map-title {
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: rgba(255, 160, 40, 0.6);
+  font-weight: bold;
+}
+
+#btn-toggle-map {
+  background: transparent;
+  border: none;
+  color: rgba(255, 160, 40, 0.4);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+  transition: color 0.2s;
+}
+#btn-toggle-map:hover { color: rgba(255, 160, 40, 1); }
+
+#map-body {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  transform-origin: bottom right;
+}
+
+#map-panel.collapsed #map-body {
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.95);
+}
+
+#map-wrap {
+  position: relative;
+  width: 240px;
+  height: 240px;
+  background: transparent;
+  overflow: hidden;
+  cursor: crosshair;
+}
+
+#map-canvas {
+  display: block;
+  width: 240px;
+  height: 240px;
+}
+
+#map-scale {
+  position: absolute;
+  bottom: 8px;
+  left: 10px;
+  font-size: 7px;
+  letter-spacing: 1px;
+  color: rgba(255, 160, 40, 0.4);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+#map-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(255, 160, 40, 0.02);
+  border-top: 1px solid rgba(255, 160, 40, 0.1);
+}
+
+#map-controls label {
+  font-size: 7px;
+  letter-spacing: 1px;
+  color: rgba(255, 160, 40, 0.4);
+  text-transform: uppercase;
+}
+
+#count-display {
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: rgba(255, 160, 40, 0.9);
+  width: 28px;
+  text-align: center;
+}
+
+.map-btn {
+  background: rgba(255, 160, 40, 0.05);
+  border: 1px solid rgba(255, 160, 40, 0.2);
+  color: rgba(255, 160, 40, 0.7);
+  font-family: inherit;
+  font-size: 12px;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.map-btn:hover {
+  background: rgba(255, 160, 40, 0.15);
+  border-color: rgba(255, 160, 40, 0.5);
+}
+
+#btn-fire {
+  margin-left: auto;
+  padding: 0 14px;
+  height: 24px;
+  border-radius: 4px;
+  font-size: 8px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  background: rgba(255, 80, 20, 0.1);
+  border: 1px solid rgba(255, 80, 20, 0.4);
+  color: rgba(255, 100, 30, 0.9);
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+#btn-fire:hover {
+  background: rgba(255, 80, 20, 0.25);
+  border-color: rgba(255, 80, 20, 0.8);
+  box-shadow: 0 0 10px rgba(255, 80, 20, 0.3);
+}
+#btn-fire.ready { animation: pulse 1.8s ease-in-out infinite; }
+
+@keyframes pulse {
+  0%, 100% { border-color: rgba(255, 80, 20, 0.4); box-shadow: 0 0 5px rgba(255, 80, 20, 0.1); }
+  50% { border-color: rgba(255, 80, 20, 1); box-shadow: 0 0 15px rgba(255, 80, 20, 0.4); }
+}
