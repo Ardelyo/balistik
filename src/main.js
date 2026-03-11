@@ -62,7 +62,7 @@ function upTime(dt) {
     ambLight.intensity = 0.03 + (dayness < 0.3 ? dayness / 0.3 : 1) * 0.3;
     renderer.toneMappingExposure = 0.32 + dayness * 0.88;
     const h = Math.floor(timeOfDay * 24);
-    const lbls = ['MIDNIGHT', 'PREDAWN', 'DAWN', 'MORNING', 'NOON', 'AFTERNOON', 'DUSK', 'NIGHT'];
+    const lbls = ['TENGAH MALAM', 'DINI HARI', 'FAJAR', 'PAGI', 'SIANG', 'SORE', 'SENJA', 'MALAM'];
     const tLbl = document.getElementById('timeLbl');
     if (tLbl) tLbl.textContent = `${String(h).padStart(2, '0')}:00 · ${lbls[Math.min(Math.floor(timeOfDay * 8), 7)]}`;
 }

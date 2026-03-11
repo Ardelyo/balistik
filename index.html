@@ -1,21 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BALLISTIC COMMAND</title>
+    <title>KOMANDO BALISTIK</title>
     <link rel="stylesheet" href="/src/styles/main.css">
 </head>
 <body>
     <div id="boot">
         <div>
-            <h1>BALLISTIC COMMAND</h1>
+            <h1>KOMANDO BALISTIK</h1>
             <div class="bline"></div>
-            <p>WASD · MOVE &nbsp;|&nbsp; MOUSE · LOOK<br>
-               MAP · SET TARGET &amp; FIRE<br>
-               T · ADVANCE TIME &nbsp;|&nbsp; SCROLL · ZOOM<br>
-               CLICK MAP → SET TARGET → FIRE</p>
-            <button id="boot-btn">INITIALIZE</button>
+            <p>WASD · GERAK &nbsp;|&nbsp; TETIKUS · LIHAT<br>
+               PETA · ATUR TARGET &amp; TEMBAK<br>
+               T · PERCEPAT WAKTU &nbsp;|&nbsp; GULIR · PERBESAR<br>
+               KLIK PETA → ATUR TARGET → TEMBAK</p>
+            <button id="boot-btn">MULAI</button>
         </div>
     </div>
 
@@ -24,14 +24,14 @@
     <div id="xh"></div>
 
     <div id="hud">
-        <div id="htl">SYSTEM READY<br><span id="timeLbl">—</span></div>
-        <div id="htr">IN FLIGHT&nbsp;<span id="flightLbl">0</span><br>TOTAL FIRED&nbsp;<span id="firedLbl">0</span></div>
-        <div id="hbl">WASD MOVE · SCROLL ZOOM · T TIME<br>CLICK MAP → SET TARGET → FIRE</div>
+        <div id="htl">SISTEM SIAP<br><span id="timeLbl">—</span></div>
+        <div id="htr">PENERBANGAN&nbsp;<span id="flightLbl">0</span><br>TOTAL TEMBAKAN&nbsp;<span id="firedLbl">0</span></div>
+        <div id="hbl">WASD GERAK · GULIR ZOOM · T WAKTU<br>KLIK PETA → ATUR TARGET → TEMBAK</div>
     </div>
 
     <div id="map-panel">
         <div id="map-header">
-            <span id="map-title">TACTICAL DISPLAY</span>
+            <span id="map-title">TAMPILAN TAKTIS</span>
             <button id="btn-toggle-map">_</button>
         </div>
         <div id="map-body">
@@ -40,11 +40,11 @@
                 <div id="map-scale">0&nbsp;&nbsp;━━━━&nbsp;&nbsp;500m</div>
             </div>
             <div id="map-controls">
-                <label>MISSILES</label>
+                <label>RUDAL</label>
                 <button class="map-btn" id="btn-minus">−</button>
                 <span id="count-display">06</span>
                 <button class="map-btn" id="btn-plus">+</button>
-                <button id="btn-fire" class="ready">FIRE</button>
+                <button id="btn-fire" class="ready">TEMBAK</button>
             </div>
         </div>
     </div>

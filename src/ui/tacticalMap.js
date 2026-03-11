@@ -97,7 +97,7 @@ export function drawMap(ctx, bg, explosions, missiles, launcher, camera, targetW
         ctx.strokeRect(-4, -4, 8, 8);
         ctx.beginPath(); ctx.moveTo(0, -7); ctx.lineTo(0, -4); ctx.stroke();
         ctx.fillStyle = '#ffaa28'; ctx.font = 'bold 7px monospace';
-        ctx.fillText('LNC', 6, 3);
+        ctx.fillText('PLN', 6, 3);
         ctx.restore();
     }
 
