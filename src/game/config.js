@@ -10,12 +10,12 @@ export const CFG = {
     POOL_LIGHTS: 7,
     MAP_SZ: 240,
     MAP_WORLD: 2500,
-    WIND: { x: 4.5, z: -2.1, variance: 0.8 }, // Base wind vector and temporal variance
-    DRAG_COEFF: 0.0012, // Air resistance coefficient
-    INACCURACY: 0.025, // Percentage of velocity variance at launch
-    ATMOS_SCALE_HEIGHT: 550, // Altitude where air density drops by ~63%
+    WIND: { x: 4.5, z: -2.1, variance: 0.8, jetStreamAlt: 600, jetStreamScale: 3.5 }, 
+    DRAG_COEFF: 0.0012, 
+    INACCURACY: 0.025, 
+    ATMOS_SCALE_HEIGHT: 550, 
     SEA_LEVEL_DENSITY: 1.0,
-    REENTRY_VEL: 180, // Velocity threshold for thermal effects
+    REENTRY_VEL: 180, 
 };
 
 export function noise(x, z) {

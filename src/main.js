@@ -4,7 +4,7 @@ import { initParticles, updateParticles, spawn } from './game/particleSystem.js'
 import { initLightPool, updateLights, grabLight } from './engine/lightPool.js';
 import { buildSky, createSkyMaterial } from './engine/sky.js';
 import { buildTerrain, buildEnv } from './engine/terrain.js';
-import { buildLauncher, fireSalvo } from './game/launcher.js';
+import { buildLauncher, updateLauncher, fireSalvo } from './game/launcher.js';
 import { updateMissiles } from './game/missileSystem.js';
 import { buildMapBg, drawMap } from './ui/tacticalMap.js';
 
@@ -135,6 +135,9 @@ function boot() {
 function loop() {
     requestAnimationFrame(loop);
     const dt = Math.min(clock.getDelta(), 0.05);
+
+    if (launcherObj) updateLauncher(launcherObj, dt);
+
     if (isLocked) {
         const sp = (keys['ShiftLeft'] || keys['ShiftRight']) ? 20 : 8;
         const fwd = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(0, yaw, 0));

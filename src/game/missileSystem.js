@@ -107,14 +107,23 @@ function getAtmosDensity(y) {
 
 export function updateMissiles(missiles, dt, scene, camera, dayness, explodeFn) {
     const time = performance.now() * 0.001;
-    _wind.set(CFG.WIND.x + Math.sin(time * 0.2) * CFG.WIND.variance * 2, 0, CFG.WIND.z + Math.cos(time * 0.25) * CFG.WIND.variance * 2);
-
+    
     // Process falling boosters (debris)
     for (let i = debris.length - 1; i >= 0; i--) {
         const d = debris[i];
         const dens = getAtmosDensity(d.mesh.position.y);
+        
+        // Altitude-layered wind for debris
+        const alt = d.mesh.position.y;
+        const jetFac = Math.max(1.0, alt / CFG.WIND.jetStreamAlt) * CFG.WIND.jetStreamScale;
+        const currentWind = _wind.set(
+            (CFG.WIND.x + Math.sin(time * 0.2) * CFG.WIND.variance) * jetFac,
+            0,
+            (CFG.WIND.z + Math.cos(time * 0.25) * CFG.WIND.variance) * jetFac
+        );
+
         d.vel.y -= CFG.GRAVITY * dt;
-        _tmpV.copy(d.vel).sub(_wind);
+        _tmpV.copy(d.vel).sub(currentWind);
         const drag = _tmpV.lengthSq() * CFG.DRAG_COEFF * 4.0 * dens * dt;
         d.vel.add(_tmpV.normalize().multiplyScalar(-drag));
         d.mesh.position.addScaledVector(d.vel, dt);
@@ -134,6 +143,15 @@ export function updateMissiles(missiles, dt, scene, camera, dayness, explodeFn) 
         const burning = m.age < m.burnTime;
         const dens = getAtmosDensity(m.mesh.position.y);
         
+        // Altitude-layered wind for missiles
+        const alt = m.mesh.position.y;
+        const jetFac = 1.0 + Math.max(0, (alt - 200) / CFG.WIND.jetStreamAlt) * CFG.WIND.jetStreamScale;
+        const currentWind = _tmpV.set(
+            (CFG.WIND.x + Math.sin(time * 0.2) * CFG.WIND.variance) * jetFac,
+            0,
+            (CFG.WIND.z + Math.cos(time * 0.25) * CFG.WIND.variance) * jetFac
+        );
+
         // SEPARATION
         if (!burning && !m.separated) {
             m.separated = true;
@@ -165,8 +183,8 @@ export function updateMissiles(missiles, dt, scene, camera, dayness, explodeFn) 
 
         m.vel.y -= CFG.GRAVITY * dt;
 
-        // DRAG (Altitude-dependent)
-        _tmpV.copy(m.vel).sub(_wind);
+        // DRAG & WIND (Altitude-dependent)
+        _tmpV.copy(m.vel).sub(currentWind);
         const dragCoeff = m.separated ? CFG.DRAG_COEFF * 0.5 : CFG.DRAG_COEFF;
         const dragMag = _tmpV.lengthSq() * dragCoeff * dens * dt;
         m.vel.add(_tmpV.normalize().multiplyScalar(-dragMag));
