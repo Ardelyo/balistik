@@ -7,6 +7,7 @@ import { buildTerrain, buildEnv } from './engine/terrain.js';
 import { buildLauncher, updateLauncher, fireSalvo } from './game/launcher.js';
 import { updateMissiles } from './game/missileSystem.js';
 import { buildMapBg, drawMap } from './ui/tacticalMap.js';
+import { initAudio, updateListener, playExplosion, playUIClick } from './engine/audio.js';
 
 let renderer, scene, camera, clock;
 let skyMat, sunLight, ambLight, terrainMat;
@@ -38,6 +39,7 @@ function explode(x, y, z, scale = 1.0) {
     mapExplosions.push({ wx: x, wz: z, life: 2.5 });
     
     if (skyMat) skyMat.uniforms.flashExp.value = Math.max(skyMat.uniforms.flashExp.value, 0.5 * S);
+    playExplosion(x, y, z, S);
 }
 
 function upTime(dt) {
@@ -66,6 +68,7 @@ function upTime(dt) {
 }
 
 function boot() {
+    initAudio();
     document.getElementById('boot').style.display = 'none';
     
     mc = document.getElementById('map-canvas');
@@ -73,6 +76,7 @@ function boot() {
         mapCtx = mc.getContext('2d');
         mapBg = buildMapBg();
         mc.addEventListener('click', e => {
+            playUIClick();
             const rect = mc.getBoundingClientRect();
             const mx = (e.clientX - rect.left) * (CFG.MAP_SZ / rect.width);
             const my = (e.clientY - rect.top) * (CFG.MAP_SZ / rect.height);
@@ -112,17 +116,34 @@ function boot() {
     document.addEventListener('mousemove', e => { if (isLocked) { yaw -= e.movementX * 0.0018; pitch -= e.movementY * 0.0018; pitch = Math.max(-1.4, Math.min(1.4, pitch)); } });
     document.addEventListener('pointerlockchange', () => isLocked = !!document.pointerLockElement);
     renderer.domElement.addEventListener('click', () => { if (!isLocked) renderer.domElement.requestPointerLock(); });
-    document.addEventListener('keydown', e => { keys[e.code] = true; if (e.code === 'KeyT' && isLocked) timeOfDay = (timeOfDay + 1/24) % 1.0; });
+    document.addEventListener('keydown', e => { 
+        keys[e.code] = true; 
+        if (e.code === 'KeyT' && isLocked) timeOfDay = (timeOfDay + 1/24) % 1.0; 
+
+        if (e.code === 'KeyP') {
+            playUIClick();
+            CFG.PERFORMANCE_MODE = !CFG.PERFORMANCE_MODE;
+            renderer.shadowMap.enabled = !CFG.PERFORMANCE_MODE;
+            scene.traverse(node => {
+                if (node.isMesh) {
+                    node.castShadow = !CFG.PERFORMANCE_MODE;
+                    node.receiveShadow = !CFG.PERFORMANCE_MODE;
+                }
+            });
+            renderer.setPixelRatio(CFG.PERFORMANCE_MODE ? 1.0 : CFG.PIXEL_RATIO);
+        }
+    });
     document.addEventListener('keyup', e => keys[e.code] = false);
     document.addEventListener('wheel', e => { fov = Math.max(18, Math.min(90, fov + e.deltaY * 0.05)); camera.fov = fov; camera.updateProjectionMatrix(); });
 
-    document.getElementById('btn-minus').onclick = () => { missileCount = Math.max(1, missileCount - 1); document.getElementById('count-display').textContent = String(missileCount).padStart(2, '0'); };
-    document.getElementById('btn-plus').onclick = () => { missileCount = Math.min(80, missileCount + 1); document.getElementById('count-display').textContent = String(missileCount).padStart(2, '0'); };
-    document.getElementById('btn-fire').onclick = () => fireSalvo(scene, camera, missiles, launcherObj, targetWorld, missileCount, () => totalFired++);
+    document.getElementById('btn-minus').onclick = () => { playUIClick(); missileCount = Math.max(1, missileCount - 1); document.getElementById('count-display').textContent = String(missileCount).padStart(2, '0'); };
+    document.getElementById('btn-plus').onclick = () => { playUIClick(); missileCount = Math.min(80, missileCount + 1); document.getElementById('count-display').textContent = String(missileCount).padStart(2, '0'); };
+    document.getElementById('btn-fire').onclick = () => { playUIClick(); fireSalvo(scene, camera, missiles, launcherObj, targetWorld, missileCount, () => totalFired++); };
 
     const mapPanel = document.getElementById('map-panel');
     const btnToggle = document.getElementById('btn-toggle-map');
     const toggleMap = () => {
+        playUIClick();
         mapPanel.classList.toggle('collapsed');
         btnToggle.textContent = mapPanel.classList.contains('collapsed') ? '□' : '_';
     };
@@ -137,6 +158,7 @@ function loop() {
     const dt = Math.min(clock.getDelta(), 0.05);
 
     if (launcherObj) updateLauncher(launcherObj, dt);
+    updateListener(camera);
 
     if (isLocked) {
         const sp = (keys['ShiftLeft'] || keys['ShiftRight']) ? 20 : 8;

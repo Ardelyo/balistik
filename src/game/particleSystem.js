@@ -34,6 +34,9 @@ export function initParticles(scene) {
 }
 
 export function spawn(x, y, z, vx, vy, vz, r, g, b, sz, life, type) {
+    // In Performance Mode, skip 50% of visual-only particles (types 0, 1, 3)
+    if (CFG.PERFORMANCE_MODE && (type === 0 || type === 1 || type === 3) && Math.random() > 0.5) return;
+
     for (const p of pool) {
         if (!p.a) {
             p.a = true; p.life = life; p.ml = life; p.x = x; p.y = y; p.z = z; p.vx = vx; p.vy = vy; p.vz = vz; p.r = r; p.g = g; p.b = b; p.sz = sz; p.type = type; return;

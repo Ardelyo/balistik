@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { gnd } from './config.js';
 import { computeVel, createMissile } from './missileSystem.js';
 import { spawn } from './particleSystem.js';
+import { playLaunch } from '../engine/audio.js';
 
 export function buildLauncher(scene, wx, wy, wz) {
     const grp = new THREE.Group();
@@ -116,6 +117,7 @@ export function fireSalvo(scene, camera, missiles, launcher, targetWorld, count,
                 
                 missiles.push(createMissile(scene, camera, launchPos, vel));
                 onFired();
+                playLaunch(launchPos.x, launchPos.y, launchPos.z);
                 for (let j = 0; j < 18; j++) {
                     const d = { x: (Math.random() - 0.5) * 2, y: (Math.random() - 0.5) * 2, z: (Math.random() - 0.5) * 2 };
                     spawn(launchPos.x, launchPos.y, launchPos.z, d.x * 10 + vel.x * 0.06, Math.abs(d.y) * 7 + 3, d.z * 10 + vel.z * 0.06, 1, 0.55, 0.05, 0.8 + Math.random() * 1.8, 0.3 + Math.random() * 0.5, 0);

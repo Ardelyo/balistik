@@ -3,6 +3,7 @@ import { CFG, gnd } from './config.js';
 import { spawn } from './particleSystem.js';
 import { grabLight } from '../engine/lightPool.js';
 import { TEX_CORE, TEX_HALO, TEX_STREAK } from './textures.js';
+import { playSeparation } from '../engine/audio.js';
 
 const sharedMats = {};
 function getMats() {
@@ -175,6 +176,8 @@ export function updateMissiles(missiles, dt, scene, camera, dayness, explodeFn) 
             
             scene.remove(m.mesh);
             m.mesh = m.rv;
+            
+            playSeparation(wp.x, wp.y, wp.z);
             
             for (let i = 0; i < 15; i++) {
                 spawn(wp.x, wp.y, wp.z, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, 1, 1, 1, 0.5, 0.2, 0);

@@ -16,6 +16,7 @@ export const CFG = {
     ATMOS_SCALE_HEIGHT: 550, 
     SEA_LEVEL_DENSITY: 1.0,
     REENTRY_VEL: 180, 
+    PERFORMANCE_MODE: false, // Toggle for lower quality, higher FPS
 };
 
 export function noise(x, z) {
